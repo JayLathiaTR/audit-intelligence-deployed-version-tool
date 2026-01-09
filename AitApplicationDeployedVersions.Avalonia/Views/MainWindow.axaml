@@ -7,7 +7,7 @@
         x:Class="AitApplicationDeployedVersions.Avalonia.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/aitversion-logo.ico"
-    Title="AIT Deployed Versions"
+    Title="Audit Intelligence Suite - Deployed Versions"
     Width="1100" Height="700"
     MinWidth="900" MinHeight="600"
     Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
@@ -28,7 +28,7 @@
 
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14" Margin="24">
         <StackPanel Spacing="4">
-            <TextBlock Text="AIT Deployed Versions" FontSize="22" FontWeight="SemiBold" />
+            <TextBlock Text="Audit Intelligence Suite - Deployed Versions" FontSize="22" FontWeight="SemiBold" />
             <TextBlock Text="Select an environment and fetch deployed versions." Opacity="0.75" />
         </StackPanel>
 
@@ -66,23 +66,51 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="2"
-            Padding="10"
-            CornerRadius="12"
-            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-            BorderThickness="1">
-            <DataGrid ItemsSource="{Binding Results}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      GridLinesVisibility="None"
-                      SelectionMode="Single">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="App" Binding="{Binding App}" Width="2*" />
-                    <DataGridTextColumn Header="Deployed Version" Binding="{Binding DeployedVersion}" Width="3*" />
-                </DataGrid.Columns>
-            </DataGrid>
-        </Border>
+        <Grid Grid.Row="2" RowDefinitions="*,*" RowSpacing="14">
+            <Border
+                Padding="10"
+                CornerRadius="12"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                BorderThickness="1">
+                <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                    <TextBlock Text="AIT (Test)" FontWeight="SemiBold" />
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding ResultsAit}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="None"
+                              SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="App" Binding="{Binding App}" Width="2*" />
+                            <DataGridTextColumn Header="Deployed Version" Binding="{Binding DeployedVersion}" Width="3*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1"
+                Padding="10"
+                CornerRadius="12"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                BorderThickness="1">
+                <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                    <TextBlock Text="AIA (Analyze)" FontWeight="SemiBold" />
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding ResultsAia}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="None"
+                              SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="App" Binding="{Binding App}" Width="2*" />
+                            <DataGridTextColumn Header="Deployed Version" Binding="{Binding DeployedVersion}" Width="3*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 
 </Window>

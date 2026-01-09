@@ -13,6 +13,12 @@ public static class AppCore
         Timeout = TimeSpan.FromSeconds(15)
     };
 
+    private static string NormalizeCategory(string? category)
+    {
+        if (string.IsNullOrWhiteSpace(category)) return "AIT";
+        return category.Trim().ToUpperInvariant();
+    }
+
     public static List<AppInfo> LoadApps()
     {
         var configPath = Path.Combine(AppContext.BaseDirectory, "apps.json");
@@ -57,7 +63,13 @@ public static class AppCore
         if (string.IsNullOrWhiteSpace(env)) throw new ArgumentException("env is required", nameof(env));
 
         var results = apps
-            .Select(a => new VersionResult { AppName = a.Name, Environment = env, Version = "Pending" })
+            .Select(a => new VersionResult
+            {
+                AppName = a.Name,
+                Environment = env,
+                Category = NormalizeCategory(a.Category),
+                Version = "Pending"
+            })
             .ToArray();
 
         var completedCount = 0;

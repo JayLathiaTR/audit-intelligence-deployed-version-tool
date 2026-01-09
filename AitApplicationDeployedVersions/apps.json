@@ -1,6 +1,7 @@
 [
   {
     "name": "Csgateway",
+    "category": "AIT",
     "type": "Microservice",
     "versionJsonPath": "info.version",
     "envUrls": {
@@ -16,6 +17,7 @@
   },
   {
     "name": "AitCore",
+    "category": "AIT",
     "type": "Microservice",
     "versionJsonPath": "info.version",
     "envUrls": {
@@ -31,6 +33,7 @@
   },
   {
     "name": "AitPricing",
+    "category": "AIT",
     "type": "Microservice",
     "versionJsonPath": "info.version",
     "envUrls": {
@@ -46,6 +49,7 @@
   },
   {
     "name": "AitOfficeAddin",
+    "category": "AIT",
     "type": "OfficeAddin",
     "versionJsonPath": "version",
     "envUrls": {
@@ -61,6 +65,7 @@
   },
   {
     "name": "AitWebComponent",
+    "category": "AIT",
     "type": "BlazorWasm",
     "versionJsonPath": "version",
     "envUrls": {
@@ -72,6 +77,38 @@
       "UKSBX": "https://uksandbox.webcomponents.aitest.thomsonreuters.com/version.json",
       "PROD": "https://webcomponents.aitest.thomsonreuters.com/version.json",
       "UKPROD": "https://uk.webcomponents.aitest.thomsonreuters.com/version.json"
+    }
+  },
+  {
+    "name": "AiaCore",
+    "category": "AIA",
+    "type": "Microservice",
+    "versionJsonPath": "info.version",
+    "envUrls": {
+      "CI": "https://ci.api.analyze.auditintelligence.thomsonreuters.com/em/smartanalysis/swagger/v3/swagger.json",
+      "DEMO": "https://demo.api.analyze.auditintelligence.thomsonreuters.com/em/smartanalysis/swagger/v3/swagger.json",
+      "QED": "https://qed.api.analyze.auditintelligence.thomsonreuters.com/em/smartanalysis/swagger/v3/swagger.json",
+      "UKQED": "https://ukqed.api.analyze.auditintelligence.thomsonreuters.com/em/smartanalysis/swagger/v3/swagger.json",
+      "SBX": "https://sandbox.api.analyze.auditintelligence.thomsonreuters.com/em/smartanalysis/swagger/v3/swagger.json",
+      "UKSBX": "https://uksandbox.api.analyze.auditintelligence.thomsonreuters.com/em/smartanalysis/swagger/v3/swagger.json",
+      "PROD": "https://api.analyze.auditintelligence.thomsonreuters.com/em/smartanalysis/swagger/v3/swagger.json",
+      "UKPROD": "https://uk.api.analyze.auditintelligence.thomsonreuters.com/em/smartanalysis/swagger/v3/swagger.json"
+    }
+  },
+  {
+    "name": "AiaEmailService",
+    "category": "AIA",
+    "type": "Microservice",
+    "versionJsonPath": "info.version",
+    "envUrls": {
+      "CI": "https://ci.api.email.auditintelligence.thomsonreuters.com/em/email/swagger/v3/swagger.json",
+      "DEMO": "https://demo.api.email.auditintelligence.thomsonreuters.com/em/email/swagger/v3/swagger.json",
+      "QED": "https://qed.api.email.auditintelligence.thomsonreuters.com/em/email/swagger/v3/swagger.json",
+      "UKQED": "https://ukqed.api.email.auditintelligence.thomsonreuters.com/em/email/swagger/v3/swagger.json",
+      "SBX": "https://sandbox.api.email.auditintelligence.thomsonreuters.com/em/email/swagger/v3/swagger.json",
+      "UKSBX": "https://uksandbox.api.email.auditintelligence.thomsonreuters.com/em/email/swagger/v3/swagger.json",
+      "PROD": "https://api.email.auditintelligence.thomsonreuters.com/em/email/swagger/v3/swagger.json",
+      "UKPROD": "https://uk.api.email.auditintelligence.thomsonreuters.com/em/email/swagger/v3/swagger.json"
     }
   }
 ]

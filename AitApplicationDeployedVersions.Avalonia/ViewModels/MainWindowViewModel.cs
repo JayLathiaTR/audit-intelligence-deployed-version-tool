@@ -31,7 +31,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public bool IsNotBusy => !IsBusy;
 
-    public ObservableCollection<ResultRow> Results { get; } = new();
+    public ObservableCollection<ResultRow> ResultsAit { get; } = new();
+    public ObservableCollection<ResultRow> ResultsAia { get; } = new();
 
     private CancellationTokenSource? fetchCts;
 
@@ -67,7 +68,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             var apps = AppCore.LoadApps();
             var total = apps.Count;
 
-            Results.Clear();
+            ResultsAit.Clear();
+            ResultsAia.Clear();
             ProgressValue = 0;
             StatusText = $"Fetching {env} 0/{total}…";
 
@@ -84,9 +86,17 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
             Dispatcher.UIThread.Post(() =>
             {
-                Results.Clear();
+                ResultsAit.Clear();
+                ResultsAia.Clear();
+
                 foreach (var r in results)
-                    Results.Add(new ResultRow(r.AppName, r.Version));
+                {
+                    var row = new ResultRow(r.AppName, r.Version);
+                    if (string.Equals(r.Category, "AIA", StringComparison.OrdinalIgnoreCase))
+                        ResultsAia.Add(row);
+                    else
+                        ResultsAit.Add(row);
+                }
 
                 ProgressValue = 100;
                 StatusText = fetchCts.IsCancellationRequested ? $"Cancelled ({env})" : $"Completed ({env})";
