@@ -31,7 +31,23 @@ This file controls:
 - Layout/styling: `AitApplicationDeployedVersions.Avalonia/Views/MainWindow.axaml`
 - ViewModel/behavior: `AitApplicationDeployedVersions.Avalonia/ViewModels/MainWindowViewModel.cs`
 
-## Build / Run (dev)
+## CI/CD builds + Releases (recommended)
+
+This repo uses GitHub Actions to automatically build and publish the single-file EXE.
+
+### PR / push builds
+
+- Every push and PR to `master` runs the CI workflow.
+- It publishes the `win-x64` single-file EXE and uploads it as a workflow artifact.
+- You can download it from **GitHub → Actions → (the run) → Artifacts**.
+
+### Releases (tag-based)
+
+- When you push a tag that starts with `v` (example: `v1.0.0`), the Release workflow runs.
+- It publishes the `win-x64` single-file EXE and attaches it to a GitHub Release.
+- You can download it from **GitHub → Releases → (your tag) → Assets**.
+
+## Build / Run (dev) (manual)
 
 In Visual Studio, set `AitApplicationDeployedVersions.Avalonia` as the Startup Project and run.
 
@@ -39,7 +55,7 @@ Or from the repo root:
 
 - `dotnet build`
 
-## Publish single-file EXE (win-x64)
+## Publish single-file EXE (win-x64) (manual)
 
 From the repo root:
 
