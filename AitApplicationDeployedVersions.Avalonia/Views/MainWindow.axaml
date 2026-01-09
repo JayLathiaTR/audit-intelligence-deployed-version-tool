@@ -66,51 +66,118 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="2" RowDefinitions="*,*" RowSpacing="14">
-            <Border
-                Padding="10"
-                CornerRadius="12"
-                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                BorderThickness="1">
-                <Grid RowDefinitions="Auto,*" RowSpacing="8">
-                    <TextBlock Text="AIT (Test)" FontWeight="SemiBold" />
-                    <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding ResultsAit}"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              GridLinesVisibility="None"
-                              SelectionMode="Single">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="App" Binding="{Binding App}" Width="2*" />
-                            <DataGridTextColumn Header="Deployed Version" Binding="{Binding DeployedVersion}" Width="3*" />
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
-            </Border>
+        <TabControl Grid.Row="2">
+            <TabItem Header="Deployed Versions">
+                <Grid RowDefinitions="*,*" RowSpacing="14">
+                    <Border
+                        Padding="10"
+                        CornerRadius="12"
+                        Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        BorderThickness="1">
+                        <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                            <TextBlock Text="AIT (Test)" FontWeight="SemiBold" />
+                            <DataGrid Grid.Row="1"
+                                      ItemsSource="{Binding ResultsAit}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      GridLinesVisibility="None"
+                                      SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="App" Binding="{Binding App}" Width="2*" />
+                                    <DataGridTextColumn Header="Deployed Version" Binding="{Binding DeployedVersion}" Width="3*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
 
-            <Border Grid.Row="1"
-                Padding="10"
-                CornerRadius="12"
-                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                BorderThickness="1">
-                <Grid RowDefinitions="Auto,*" RowSpacing="8">
-                    <TextBlock Text="AIA (Analyze)" FontWeight="SemiBold" />
-                    <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding ResultsAia}"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              GridLinesVisibility="None"
-                              SelectionMode="Single">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="App" Binding="{Binding App}" Width="2*" />
-                            <DataGridTextColumn Header="Deployed Version" Binding="{Binding DeployedVersion}" Width="3*" />
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <Border Grid.Row="1"
+                        Padding="10"
+                        CornerRadius="12"
+                        Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        BorderThickness="1">
+                        <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                            <TextBlock Text="AIA (Analyze)" FontWeight="SemiBold" />
+                            <DataGrid Grid.Row="1"
+                                      ItemsSource="{Binding ResultsAia}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      GridLinesVisibility="None"
+                                      SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="App" Binding="{Binding App}" Width="2*" />
+                                    <DataGridTextColumn Header="Deployed Version" Binding="{Binding DeployedVersion}" Width="3*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
                 </Grid>
-            </Border>
-        </Grid>
+            </TabItem>
+
+            <TabItem Header="Work Items">
+                <Grid RowDefinitions="Auto,*,*" RowSpacing="14">
+                    <TextBlock Text="{Binding WorkItemsStatusText}" Opacity="0.85" TextWrapping="Wrap" />
+
+                    <Border Grid.Row="1"
+                        Padding="10"
+                        CornerRadius="12"
+                        Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        BorderThickness="1">
+                        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8" ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Linked Work Items (from PR description AB#...)" FontWeight="SemiBold" />
+                            <Button Grid.Column="1"
+                                    Content="Open selected PR"
+                                    Command="{Binding OpenSelectedLinkedPullRequestCommand}" />
+                            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="(Titles not fetched in this MVP; PR links are provided.)" Opacity="0.7" />
+                            <DataGrid Grid.Row="2" Grid.ColumnSpan="2"
+                                      ItemsSource="{Binding LinkedWorkItems}"
+                                      SelectedItem="{Binding SelectedLinkedWorkItem}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      GridLinesVisibility="None"
+                                      SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Service" Binding="{Binding App}" Width="2*" />
+                                    <DataGridTextColumn Header="Work Item" Binding="{Binding WorkItemId}" Width="1*" />
+                                    <DataGridTextColumn Header="PR" Binding="{Binding PullRequestNumber}" Width="1*" />
+                                    <DataGridTextColumn Header="PR Title" Binding="{Binding PullRequestTitle}" Width="4*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="2"
+                        Padding="10"
+                        CornerRadius="12"
+                        Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        BorderThickness="1">
+                        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8" ColumnDefinitions="*,Auto">
+                            <TextBlock Text="PRs with no AB# work items" FontWeight="SemiBold" />
+                            <Button Grid.Column="1"
+                                    Content="Open selected PR"
+                                    Command="{Binding OpenSelectedUnlinkedPullRequestCommand}" />
+                            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="These PRs didn't have a valid AB#123456 in the description." Opacity="0.7" />
+                            <DataGrid Grid.Row="2" Grid.ColumnSpan="2"
+                                      ItemsSource="{Binding UnlinkedPullRequests}"
+                                      SelectedItem="{Binding SelectedUnlinkedPullRequest}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      GridLinesVisibility="None"
+                                      SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Service" Binding="{Binding App}" Width="2*" />
+                                    <DataGridTextColumn Header="PR" Binding="{Binding PullRequestNumber}" Width="1*" />
+                                    <DataGridTextColumn Header="PR Title" Binding="{Binding PullRequestTitle}" Width="5*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 
 </Window>

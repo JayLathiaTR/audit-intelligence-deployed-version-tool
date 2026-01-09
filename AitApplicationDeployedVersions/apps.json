@@ -4,6 +4,10 @@
     "category": "AIT",
     "type": "Microservice",
     "versionJsonPath": "info.version",
+    "gitHubRepo": "tr/aafm-audit-cs-gateway-be",
+    "baselineCommitByEnv": {
+      "QED": "9f693f59e84d4093e85b0807288f308e4f216283"
+    },
     "envUrls": {
       "CI": "https://ci.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",
       "DEMO": "https://demo.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",

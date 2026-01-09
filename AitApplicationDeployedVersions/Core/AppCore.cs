@@ -68,7 +68,8 @@ public static class AppCore
                 AppName = a.Name,
                 Environment = env,
                 Category = NormalizeCategory(a.Category),
-                Version = "Pending"
+                Version = "Pending",
+                FullCommitSha = null
             })
             .ToArray();
 
@@ -90,7 +91,9 @@ public static class AppCore
                     string version;
                     if (app.EnvUrls.TryGetValue(env, out _))
                     {
-                        version = await FetchVersionAsync(app, env, token);
+                        var fetched = await FetchVersionAsync(app, env, token);
+                        version = fetched.DisplayVersion;
+                        results[index].FullCommitSha = fetched.FullCommitSha;
                     }
                     else
                     {
@@ -120,12 +123,12 @@ public static class AppCore
         return results;
     }
 
-    private static async Task<string> FetchVersionAsync(AppInfo app, string env, CancellationToken cancellationToken)
+    private static async Task<VersionFetchResult> FetchVersionAsync(AppInfo app, string env, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(app);
 
         if (!app.EnvUrls.TryGetValue(env, out var url))
-            return "URL not configured";
+            return new VersionFetchResult("URL not configured", null);
 
         try
         {
@@ -133,7 +136,7 @@ public static class AppCore
             if (!response.IsSuccessStatusCode)
             {
                 var reason = string.IsNullOrWhiteSpace(response.ReasonPhrase) ? "" : $" {response.ReasonPhrase}";
-                return $"Error: {(int)response.StatusCode}{reason}";
+                return new VersionFetchResult($"Error: {(int)response.StatusCode}{reason}", null);
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -142,23 +145,29 @@ public static class AppCore
             var root = doc.RootElement;
 
             var version = TryGetJsonPathString(root, app.VersionJsonPath);
-            return version is null ? "Version not found" : ExtractCommitSha(version);
+            if (version is null)
+                return new VersionFetchResult("Version not found", null);
+
+            var full = TryExtractFullCommitSha(version);
+            var display = ExtractCommitSha(version);
+            return new VersionFetchResult(display, full);
         }
         catch (OperationCanceledException)
         {
-            return cancellationToken.IsCancellationRequested ? "Error: Cancelled" : "Error: Timeout";
+            var msg = cancellationToken.IsCancellationRequested ? "Error: Cancelled" : "Error: Timeout";
+            return new VersionFetchResult(msg, null);
         }
         catch (JsonException)
         {
-            return "Error: Invalid JSON";
+            return new VersionFetchResult("Error: Invalid JSON", null);
         }
         catch (HttpRequestException ex)
         {
-            return $"Error: {ex.Message}";
+            return new VersionFetchResult($"Error: {ex.Message}", null);
         }
         catch (Exception ex)
         {
-            return $"Error: {ex.Message}";
+            return new VersionFetchResult($"Error: {ex.Message}", null);
         }
     }
 
@@ -193,12 +202,35 @@ public static class AppCore
     {
         if (string.IsNullOrWhiteSpace(version)) return "Invalid";
 
-        var parts = version.Split('+');
-        if (parts.Length > 1 && parts[1].Length >= 7)
-        {
-            return parts[1][..7];
-        }
+        var full = TryExtractFullCommitSha(version);
+        if (!string.IsNullOrWhiteSpace(full) && full.Length >= 7)
+            return full[..7];
 
         return "Invalid SHA";
     }
+
+    private static string? TryExtractFullCommitSha(string? version)
+    {
+        if (string.IsNullOrWhiteSpace(version)) return null;
+
+        var plusIndex = version.IndexOf('+');
+        if (plusIndex < 0 || plusIndex >= version.Length - 1) return null;
+
+        var sha = version[(plusIndex + 1)..].Trim();
+
+        // Git SHA is typically 40 hex chars.
+        if (sha.Length < 7) return null;
+
+        // Only accept hex-like strings (allow short/long).
+        for (var i = 0; i < sha.Length; i++)
+        {
+            var c = sha[i];
+            var isHex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+            if (!isHex) return null;
+        }
+
+        return sha;
+    }
+
+    private readonly record struct VersionFetchResult(string DisplayVersion, string? FullCommitSha);
 }
