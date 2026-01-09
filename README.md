@@ -34,14 +34,12 @@ This file controls:
 
 ## CI/CD builds + Releases (recommended)
 
-This repo uses GitHub Actions to automatically build and publish the single-file EXE.
+This repo uses GitHub Actions to build on PRs and `master`, and to publish the single-file EXE only for releases.
 
 ### PR / push builds
 
-- Every push and PR to `master` runs the CI workflow.
-- It publishes the `win-x64` single-file EXE and uploads it as a workflow artifact.
-- You can download it from **GitHub → Actions → (the run) → Artifacts**.
-  <img width="1021" height="763" alt="image" src="https://github.com/user-attachments/assets/94fe71a4-7ec4-4fdc-aa1b-d5ffd6aa1ae6" />
+- Every PR targeting `master` and every push to `master` runs the CI workflow automatically (so merges to `master` trigger CI).
+- CI is build-only (no EXE is produced/uploaded).
 
 ### Releases (tag-based)
 
