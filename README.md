@@ -40,12 +40,14 @@ This repo uses GitHub Actions to automatically build and publish the single-file
 - Every push and PR to `master` runs the CI workflow.
 - It publishes the `win-x64` single-file EXE and uploads it as a workflow artifact.
 - You can download it from **GitHub → Actions → (the run) → Artifacts**.
+  <img width="1021" height="763" alt="image" src="https://github.com/user-attachments/assets/94fe71a4-7ec4-4fdc-aa1b-d5ffd6aa1ae6" />
 
 ### Releases (tag-based)
 
 - When you push a tag that starts with `v` (example: `v1.0.0`), the Release workflow runs.
 - It publishes the `win-x64` single-file EXE and attaches it to a GitHub Release.
 - You can download it from **GitHub → Releases → (your tag) → Assets**.
+  <img width="818" height="557" alt="image" src="https://github.com/user-attachments/assets/2a42b2f0-9260-4a7e-8a2a-f85c1b9972f1" />
 
 ## Build / Run (dev) (manual)
 
