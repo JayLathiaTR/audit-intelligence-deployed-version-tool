@@ -30,10 +30,12 @@ jobs:
         run: dotnet build "AitApplicationDeployedVersions.sln" -c Release --no-restore
 
       - name: Publish (single-file EXE)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           dotnet publish "AitApplicationDeployedVersions.Avalonia/AitApplicationDeployedVersions.Avalonia.csproj" -c Release -r win-x64 --self-contained true -o "artifacts/publish/win-x64" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false
 
       - name: Upload artifact (EXE)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: AitApplicationDeployedVersions-win-x64

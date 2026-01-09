@@ -60,8 +60,15 @@ public sealed class WorkItemState
     // Key: "{appName}||{env}"
     public Dictionary<string, WorkItemEnvEntry> Entries { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    // Key: "{category}||{env}" -> signature of configured services/repos in that set.
+    // Used to detect config changes and reset cached state to avoid partial baselines.
+    public Dictionary<string, string> ServiceSetSignatures { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     public static string MakeKey(string appName, string env)
         => $"{appName}||{env}";
+
+    public static string MakeSetKey(string category, string env)
+        => $"{category}||{env}";
 }
 
 public sealed class WorkItemEnvEntry

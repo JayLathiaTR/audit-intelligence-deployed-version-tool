@@ -39,9 +39,31 @@ public sealed class GitHubWorkItemService
 
         using var requestScope = new GitHubRequestScope(http, gitHubToken);
 
+        var access = await CheckRepoAccessAsync(repo, cancellationToken);
+        if (!access.IsOk)
+            return GitHubWorkItemFetchResult.Failure(access.Error ?? "GitHub repo access check failed");
+
         var compare = await CompareAsync(repo, baselineSha, currentSha, cancellationToken);
         if (!compare.IsOk)
+        {
+            // If repo is accessible but compare 404s, it's often because one of the SHAs isn't in this repo.
+            if (compare.StatusCode == 404)
+            {
+                var baseExists = await CommitExistsAsync(repo, baselineSha, cancellationToken);
+                var headExists = await CommitExistsAsync(repo, currentSha, cancellationToken);
+
+                if (!baseExists)
+                    return GitHubWorkItemFetchResult.Failure($"GitHub compare 404: baseline SHA not found in repo ({baselineSha}).");
+                if (!headExists)
+                    return GitHubWorkItemFetchResult.Failure($"GitHub compare 404: current SHA not found in repo ({currentSha}).");
+
+                return GitHubWorkItemFetchResult.Failure(compare.Error ?? "GitHub compare 404 (no common ancestor or compare not possible)");
+            }
+
             return GitHubWorkItemFetchResult.Failure(compare.Error ?? "GitHub compare failed");
+        }
+
+        var warning = BuildCompareWarning(compare);
 
         var pullRequestsByNumber = new Dictionary<int, PullRequestInfo>();
 
@@ -95,7 +117,34 @@ public sealed class GitHubWorkItemService
             .ThenByDescending(w => w.PullRequestNumber)
             .ToList();
 
-        return GitHubWorkItemFetchResult.Success(workItems, unlinked);
+        return GitHubWorkItemFetchResult.Success(workItems, unlinked, warning);
+    }
+
+    private static string? BuildCompareWarning(CompareResult compare)
+    {
+        // This catches the GitOps case where baseline/current are from different release branches.
+        // GitHub compare will still return commits (from merge-base), but we should warn if the head is behind.
+        if (compare.Status is null && compare.AheadBy is null && compare.BehindBy is null)
+            return null;
+
+        var status = compare.Status?.Trim();
+        var ahead = compare.AheadBy ?? 0;
+        var behind = compare.BehindBy ?? 0;
+
+        if (behind <= 0 && !string.Equals(status, "diverged", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var statusPart = string.IsNullOrWhiteSpace(status) ? "" : $"status={status}";
+        var aheadPart = compare.AheadBy is null ? "" : $"ahead={ahead}";
+        var behindPart = compare.BehindBy is null ? "" : $"behind={behind}";
+
+        var parts = new[] { statusPart, aheadPart, behindPart }
+            .Where(p => !string.IsNullOrWhiteSpace(p));
+
+        var detail = string.Join(", ", parts);
+        return string.IsNullOrWhiteSpace(detail)
+            ? "Warning: baseline/current appear to be on different branches; consider resetting the baseline."
+            : $"Warning: baseline/current appear to be on different branches ({detail}); consider resetting the baseline.";
     }
 
     private static List<int> ExtractWorkItemIds(string text)
@@ -123,7 +172,9 @@ public sealed class GitHubWorkItemService
         var json = await resp.Content.ReadAsStringAsync(cancellationToken);
 
         if (!resp.IsSuccessStatusCode)
-            return CompareResult.Failure($"GitHub compare error: {(int)resp.StatusCode} {resp.ReasonPhrase}");
+            return CompareResult.Failure(
+                statusCode: (int)resp.StatusCode,
+                error: $"GitHub compare error: {(int)resp.StatusCode} {resp.ReasonPhrase}{TryExtractApiMessageSuffix(json)}");
 
         try
         {
@@ -155,12 +206,73 @@ public sealed class GitHubWorkItemService
 
             commits = commits.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-            return CompareResult.Success(commits);
+            string? status = null;
+            int? aheadBy = null;
+            int? behindBy = null;
+
+            if (root.TryGetProperty("status", out var statusEl) && statusEl.ValueKind == JsonValueKind.String)
+                status = statusEl.GetString();
+
+            if (root.TryGetProperty("ahead_by", out var aheadEl) && aheadEl.TryGetInt32(out var a))
+                aheadBy = a;
+
+            if (root.TryGetProperty("behind_by", out var behindEl) && behindEl.TryGetInt32(out var b))
+                behindBy = b;
+
+            return CompareResult.Success(commits, status, aheadBy, behindBy);
         }
         catch (JsonException)
         {
-            return CompareResult.Failure("GitHub compare returned invalid JSON");
+            return CompareResult.Failure(statusCode: null, error: "GitHub compare returned invalid JSON");
         }
+    }
+
+    private async Task<RepoAccessResult> CheckRepoAccessAsync(string repo, CancellationToken cancellationToken)
+    {
+        var url = $"https://api.github.com/repos/{repo}";
+        using var resp = await http.GetAsync(url, cancellationToken);
+        var json = await resp.Content.ReadAsStringAsync(cancellationToken);
+
+        if (resp.IsSuccessStatusCode)
+            return RepoAccessResult.Success();
+
+        var code = (int)resp.StatusCode;
+
+        // GitHub often returns 404 for private repos when token lacks access.
+        var msg = code == 404
+            ? "GitHub repo not found OR token lacks access"
+            : $"GitHub repo access error: {code} {resp.ReasonPhrase}";
+
+        return RepoAccessResult.Failure($"{msg}{TryExtractApiMessageSuffix(json)}");
+    }
+
+    private async Task<bool> CommitExistsAsync(string repo, string sha, CancellationToken cancellationToken)
+    {
+        var url = $"https://api.github.com/repos/{repo}/commits/{sha}";
+        using var resp = await http.GetAsync(url, cancellationToken);
+        return resp.IsSuccessStatusCode;
+    }
+
+    private static string TryExtractApiMessageSuffix(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return "";
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("message", out var m)
+                && m.ValueKind == JsonValueKind.String)
+            {
+                var msg = m.GetString();
+                if (!string.IsNullOrWhiteSpace(msg))
+                    return $" (message: {msg})";
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+        return "";
     }
 
     private async Task<PullRequestLookupResult> PullRequestsForCommitAsync(string repo, string commitSha, CancellationToken cancellationToken)
@@ -214,17 +326,24 @@ public sealed class GitHubWorkItemService
     {
         private readonly HttpClient http;
         private readonly AuthenticationHeaderValue? previousAuth;
+        private readonly List<string> previousAccept;
+        private readonly string? previousApiVersion;
 
         public GitHubRequestScope(HttpClient http, string token)
         {
             this.http = http;
 
             previousAuth = http.DefaultRequestHeaders.Authorization;
-            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            http.DefaultRequestHeaders.Authorization = BuildAuthHeader(token);
 
             // Required by GitHub API.
             if (!http.DefaultRequestHeaders.UserAgent.Any())
                 http.DefaultRequestHeaders.UserAgent.ParseAdd("AuditIntelligenceDeployedVersionTool/1.0");
+
+            previousAccept = http.DefaultRequestHeaders.Accept.Select(a => a.MediaType ?? "").ToList();
+            previousApiVersion = http.DefaultRequestHeaders.Contains("X-GitHub-Api-Version")
+                ? http.DefaultRequestHeaders.GetValues("X-GitHub-Api-Version").FirstOrDefault()
+                : null;
 
             http.DefaultRequestHeaders.Accept.Clear();
             http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
@@ -235,13 +354,42 @@ public sealed class GitHubWorkItemService
         public void Dispose()
         {
             http.DefaultRequestHeaders.Authorization = previousAuth;
+
+            http.DefaultRequestHeaders.Accept.Clear();
+            foreach (var m in previousAccept.Where(m => !string.IsNullOrWhiteSpace(m)))
+                http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(m));
+
+            http.DefaultRequestHeaders.Remove("X-GitHub-Api-Version");
+            if (!string.IsNullOrWhiteSpace(previousApiVersion))
+                http.DefaultRequestHeaders.Add("X-GitHub-Api-Version", previousApiVersion);
+        }
+
+        private static AuthenticationHeaderValue BuildAuthHeader(string token)
+        {
+            token = token.Trim();
+
+            // Fine-grained tokens typically start with github_pat_.
+            if (token.StartsWith("github_pat_", StringComparison.OrdinalIgnoreCase))
+                return new AuthenticationHeaderValue("Bearer", token);
+
+            // Classic PATs commonly start with ghp_.
+            return new AuthenticationHeaderValue("token", token);
         }
     }
 
-    private readonly record struct CompareResult(bool IsOk, List<string> CommitShas, string? Error)
+    private readonly record struct RepoAccessResult(bool IsOk, string? Error)
     {
-        public static CompareResult Success(List<string> commits) => new(true, commits, null);
-        public static CompareResult Failure(string error) => new(false, new List<string>(), error);
+        public static RepoAccessResult Success() => new(true, null);
+        public static RepoAccessResult Failure(string error) => new(false, error);
+    }
+
+    private readonly record struct CompareResult(bool IsOk, List<string> CommitShas, string? Status, int? AheadBy, int? BehindBy, int? StatusCode, string? Error)
+    {
+        public static CompareResult Success(List<string> commits, string? status, int? aheadBy, int? behindBy)
+            => new(true, commits, status, aheadBy, behindBy, null, null);
+
+        public static CompareResult Failure(int? statusCode, string error)
+            => new(false, new List<string>(), null, null, null, statusCode, error);
     }
 
     private readonly record struct PullRequestLookupResult(bool IsOk, IReadOnlyList<PullRequestInfo> PullRequests, string? Error)
@@ -253,11 +401,11 @@ public sealed class GitHubWorkItemService
     private readonly record struct PullRequestInfo(int Number, string Title, string Body, string Url);
 }
 
-public readonly record struct GitHubWorkItemFetchResult(bool IsOk, IReadOnlyList<WorkItemLink> WorkItems, IReadOnlyList<UnlinkedPullRequest> UnlinkedPullRequests, string? Error)
+public readonly record struct GitHubWorkItemFetchResult(bool IsOk, IReadOnlyList<WorkItemLink> WorkItems, IReadOnlyList<UnlinkedPullRequest> UnlinkedPullRequests, string? Warning, string? Error)
 {
-    public static GitHubWorkItemFetchResult Success(IReadOnlyList<WorkItemLink> workItems, IReadOnlyList<UnlinkedPullRequest> unlinked)
-        => new(true, workItems, unlinked, null);
+    public static GitHubWorkItemFetchResult Success(IReadOnlyList<WorkItemLink> workItems, IReadOnlyList<UnlinkedPullRequest> unlinked, string? warning)
+        => new(true, workItems, unlinked, warning, null);
 
     public static GitHubWorkItemFetchResult Failure(string error)
-        => new(false, Array.Empty<WorkItemLink>(), Array.Empty<UnlinkedPullRequest>(), error);
+        => new(false, Array.Empty<WorkItemLink>(), Array.Empty<UnlinkedPullRequest>(), null, error);
 }

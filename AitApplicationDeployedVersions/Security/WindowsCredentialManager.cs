@@ -44,21 +44,55 @@ public static class WindowsCredentialManager
                 return null;
 
             // Generic credentials store secret in CredentialBlob as bytes.
-            // Commonly this is UTF-16LE (Unicode) text.
+            // Commonly this is UTF-16LE (Unicode) text, but it can vary depending on how the credential was created.
             var blobBytes = new byte[cred.CredentialBlobSize];
             Marshal.Copy(cred.CredentialBlob, blobBytes, 0, blobBytes.Length);
 
-            // Try UTF-16LE first.
-            var unicode = Encoding.Unicode.GetString(blobBytes).TrimEnd('\0');
-            if (!string.IsNullOrWhiteSpace(unicode)) return unicode;
+            var candidates = new List<string>();
 
-            // Fallback to UTF-8.
-            var utf8 = Encoding.UTF8.GetString(blobBytes).TrimEnd('\0');
-            return string.IsNullOrWhiteSpace(utf8) ? null : utf8;
+            // UTF-16LE (only if byte count is even)
+            if (blobBytes.Length % 2 == 0)
+                candidates.Add(Encoding.Unicode.GetString(blobBytes).TrimEnd('\0').Trim());
+
+            // UTF-8
+            candidates.Add(Encoding.UTF8.GetString(blobBytes).TrimEnd('\0').Trim());
+
+            // ASCII
+            candidates.Add(Encoding.ASCII.GetString(blobBytes).TrimEnd('\0').Trim());
+
+            foreach (var c in candidates)
+            {
+                if (LooksLikeGitHubToken(c))
+                    return c;
+            }
+
+            // As a last resort, return the first non-empty candidate.
+            return candidates.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
         }
         finally
         {
             CredFree(credPtr);
         }
+    }
+
+    private static bool LooksLikeGitHubToken(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return false;
+        token = token.Trim();
+
+        // Common token prefixes
+        if (token.StartsWith("ghp_", StringComparison.OrdinalIgnoreCase)) return token.Length >= 20;
+        if (token.StartsWith("github_pat_", StringComparison.OrdinalIgnoreCase)) return token.Length >= 20;
+
+        // Generic fallback: long-ish, url-safe-ish
+        if (token.Length < 20) return false;
+
+        foreach (var ch in token)
+        {
+            var ok = char.IsLetterOrDigit(ch) || ch is '_' or '-' ;
+            if (!ok) return false;
+        }
+
+        return true;
     }
 }
