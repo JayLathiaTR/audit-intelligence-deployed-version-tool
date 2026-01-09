@@ -1,0 +1,77 @@
+[
+  {
+    "name": "Csgateway",
+    "type": "Microservice",
+    "versionJsonPath": "info.version",
+    "envUrls": {
+      "CI": "https://ci.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",
+      "DEMO": "https://demo.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",
+      "QED": "https://qed.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",
+      "UKQED": "https://ukqed.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",
+      "SBX": "https://sandbox.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",
+      "UKSBX": "https://uksandbox.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",
+      "PROD": "https://api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",
+      "UKPROD": "https://uk.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json"
+    }
+  },
+  {
+    "name": "AitCore",
+    "type": "Microservice",
+    "versionJsonPath": "info.version",
+    "envUrls": {
+      "CI": "https://ci.api.aitest.fd.thomsonreuters.com/ait/core/swagger/v3/swagger.json",
+      "DEMO": "https://demo.api.aitest.fd.thomsonreuters.com/ait/core/swagger/v3/swagger.json",
+      "QED": "https://qed.api.aitest.thomsonreuters.com/ait/core/swagger/v3/swagger.json",
+      "UKQED": "https://ukqed.api.aitest.thomsonreuters.com/ait/core/swagger/v3/swagger.json",
+      "SBX": "https://sandbox.api.aitest.thomsonreuters.com/ait/core/swagger/v3/swagger.json",
+      "UKSBX": "https://uksandbox.api.aitest.thomsonreuters.com/ait/core/swagger/v3/swagger.json",
+      "PROD": "https://api.aitest.thomsonreuters.com/ait/core/swagger/v3/swagger.json",
+      "UKPROD": "https://uk.api.aitest.thomsonreuters.com/ait/core/swagger/v3/swagger.json"
+    }
+  },
+  {
+    "name": "AitPricing",
+    "type": "Microservice",
+    "versionJsonPath": "info.version",
+    "envUrls": {
+      "CI": "https://ci.api.aitest.fd.thomsonreuters.com/ait/pricing/swagger/v3/swagger.json",
+      "DEMO": "https://demo.api.aitest.fd.thomsonreuters.com/ait/pricing/swagger/v3/swagger.json",
+      "QED": "https://qed.api.aitest.thomsonreuters.com/ait/pricing/swagger/v3/swagger.json",
+      "UKQED": "https://ukqed.api.aitest.thomsonreuters.com/ait/pricing/swagger/v3/swagger.json",
+      "SBX": "https://sandbox.api.aitest.thomsonreuters.com/ait/pricing/swagger/v3/swagger.json",
+      "UKSBX": "https://uksandbox.api.aitest.thomsonreuters.com/ait/pricing/swagger/v3/swagger.json",
+      "PROD": "https://api.aitest.thomsonreuters.com/ait/pricing/swagger/v3/swagger.json",
+      "UKPROD": "https://uk.api.aitest.thomsonreuters.com/ait/pricing/swagger/v3/swagger.json"
+    }
+  },
+  {
+    "name": "AitOfficeAddin",
+    "type": "OfficeAddin",
+    "versionJsonPath": "version",
+    "envUrls": {
+      "CI": "https://ci.officeaddin.aitest.thomsonreuters.com/version.json",
+      "DEMO": "https://demo.officeaddin.aitest.thomsonreuters.com/version.json",
+      "QED": "https://qed.officeaddin.aitest.thomsonreuters.com/version.json",
+      "UKQED": "https://ukqed.officeaddin.aitest.thomsonreuters.com/version.json",
+      "SBX": "https://sandbox.officeaddin.aitest.thomsonreuters.com/version.json",
+      "UKSBX": "https://uksandbox.officeaddin.aitest.thomsonreuters.com/version.json",
+      "PROD": "https://officeaddin.aitest.thomsonreuters.com/version.json",
+      "UKPROD": "https://uk.officeaddin.aitest.thomsonreuters.com/version.json"
+    }
+  },
+  {
+    "name": "AitWebComponent",
+    "type": "BlazorWasm",
+    "versionJsonPath": "version",
+    "envUrls": {
+      "CI": "https://ci.webcomponents.aitest.thomsonreuters.com/version.json",
+      "DEMO": "https://demo.webcomponents.aitest.thomsonreuters.com/version.json",
+      "QED": "https://qed.webcomponents.aitest.thomsonreuters.com/version.json",
+      "UKQED": "https://ukqed.webcomponents.aitest.thomsonreuters.com/version.json",
+      "SBX": "https://sandbox.webcomponents.aitest.thomsonreuters.com/version.json",
+      "UKSBX": "https://uksandbox.webcomponents.aitest.thomsonreuters.com/version.json",
+      "PROD": "https://webcomponents.aitest.thomsonreuters.com/version.json",
+      "UKPROD": "https://uk.webcomponents.aitest.thomsonreuters.com/version.json"
+    }
+  }
+]

@@ -1,0 +1,28 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# User-specific files
+**/*.user
+**/*.suo
+**/*.userosscache
+**/*.sln.docstates
+
+# VS Code
+.vscode/
+
+# Visual Studio
+.vs/
+
+# Logs
+**/*.log
+
+# Publish / artifacts
+artifacts/
+
+# NuGet
+**/packages/
+
+# OS
+.DS_Store
+Thumbs.db
