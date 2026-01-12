@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using Avalonia.Threading;
 
 namespace AitApplicationDeployedVersions.Avalonia.ViewModels;
@@ -46,6 +47,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public bool IsNotBusy => !IsBusy;
 
+    public bool CanCopyAit => IsNotBusy && ResultsAit.Count > 0 && !string.IsNullOrWhiteSpace(lastFetchedAitEnv);
+
+    public bool CanCopyAia => IsNotBusy && ResultsAia.Count > 0 && !string.IsNullOrWhiteSpace(lastFetchedAiaEnv);
+
+    public bool CanCopyBoth => IsNotBusy &&
+        ((ResultsAit.Count > 0 && !string.IsNullOrWhiteSpace(lastFetchedAitEnv)) ||
+         (ResultsAia.Count > 0 && !string.IsNullOrWhiteSpace(lastFetchedAiaEnv)));
+
     public ObservableCollection<ResultRow> ResultsAit { get; } = new();
     public ObservableCollection<ResultRow> ResultsAia { get; } = new();
 
@@ -55,11 +64,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         this.clipboard = clipboard;
         SelectedEnvironment = Environments.FirstOrDefault();
+
+        ResultsAit.CollectionChanged += OnResultsCollectionChanged;
+        ResultsAia.CollectionChanged += OnResultsCollectionChanged;
+        NotifyCopyStateChanged();
     }
 
     partial void OnIsBusyChanged(bool value)
     {
         OnPropertyChanged(nameof(IsNotBusy));
+        NotifyCopyStateChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanFetch))]
@@ -68,14 +82,27 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanFetch))]
     private Task FetchAiaAsync() => FetchByCategoryAsync(category: "AIA");
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanCopyAit))]
     private Task CopyAitMarkdownAsync() => CopyMarkdownAsync(label: "AIT", ResultsAit, lastFetchedAitEnv);
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanCopyAia))]
     private Task CopyAiaMarkdownAsync() => CopyMarkdownAsync(label: "AIA", ResultsAia, lastFetchedAiaEnv);
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanCopyBoth))]
     private Task CopyBothMarkdownAsync() => CopyBothMarkdownAsyncCore();
+
+    private void OnResultsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => NotifyCopyStateChanged();
+
+    private void NotifyCopyStateChanged()
+    {
+        OnPropertyChanged(nameof(CanCopyAit));
+        OnPropertyChanged(nameof(CanCopyAia));
+        OnPropertyChanged(nameof(CanCopyBoth));
+
+        CopyAitMarkdownCommand.NotifyCanExecuteChanged();
+        CopyAiaMarkdownCommand.NotifyCanExecuteChanged();
+        CopyBothMarkdownCommand.NotifyCanExecuteChanged();
+    }
 
     private async Task FetchByCategoryAsync(string category)
     {
@@ -149,6 +176,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                     AitHeaderText = $"AIT (Test) - {env}";
                     lastFetchedAitEnv = env;
                 }
+
+                NotifyCopyStateChanged();
 
                 StatusText = $"Fetched {category} ({env}).";
             });

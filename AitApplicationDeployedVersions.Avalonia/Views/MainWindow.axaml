@@ -61,7 +61,7 @@
             <Button Grid.Column="4"
                 Content="Copy Both"
                 Command="{Binding CopyBothMarkdownCommand}"
-                IsEnabled="{Binding IsNotBusy}" />
+                IsEnabled="{Binding CanCopyBoth}" />
 
             <TextBlock Grid.Row="1" Grid.ColumnSpan="8"
                            Text="{Binding StatusText}"
@@ -92,7 +92,7 @@
                                 <Button Grid.Column="2"
                                 Content="Copy"
                                         Command="{Binding CopyAitMarkdownCommand}"
-                                        IsEnabled="{Binding IsNotBusy}" />
+                                    IsEnabled="{Binding CanCopyAit}" />
                             </Grid>
                             <DataGrid Grid.Row="1"
                                       ItemsSource="{Binding ResultsAit}"
@@ -120,7 +120,7 @@
                                 <Button Grid.Column="2"
                                 Content="Copy"
                                         Command="{Binding CopyAiaMarkdownCommand}"
-                                        IsEnabled="{Binding IsNotBusy}" />
+                                    IsEnabled="{Binding CanCopyAia}" />
                             </Grid>
                             <DataGrid Grid.Row="1"
                                       ItemsSource="{Binding ResultsAia}"
