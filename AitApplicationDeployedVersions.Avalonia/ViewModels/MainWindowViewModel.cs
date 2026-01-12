@@ -22,8 +22,23 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 {
     private const int MaxConcurrency = 6;
 
+    [ObservableProperty]
+    private bool workItemsIsBusyAit;
+
+    [ObservableProperty]
+    private double workItemsProgressAit;
+
+    [ObservableProperty]
+    private bool workItemsIsBusyAia;
+
+    [ObservableProperty]
+    private double workItemsProgressAia;
+
     private const string GitHubCredentialTargetName = "AuditIntelligenceDeployedVersion-GitHubToken";
     private const string GitHubTokenEnvVarName = "AITVERS_GITHUB_TOKEN";
+
+    private const string EnableWorkItemsShaOverrideEnvVarName = "AITVERS_ENABLE_WORKITEMS_SHA_OVERRIDE";
+    private const string ShowWorkItemsDiagnosticsEnvVarName = "AITVERS_SHOW_WORKITEMS_DIAGNOSTICS";
 
     private const string AdoWorkItemUrlTemplateEnvVarName = "AITVERS_ADO_WORKITEM_URL_TEMPLATE";
     private const string AdoWorkItemUrlTemplateDefault = "https://dev.azure.com/tr-tax/TaxProf/_workitems/edit/{id}";
@@ -36,6 +51,26 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         Timeout = TimeSpan.FromSeconds(20)
     };
+
+    private static bool IsWorkItemsShaOverrideEnabled()
+    {
+        var v = Environment.GetEnvironmentVariable(EnableWorkItemsShaOverrideEnvVarName);
+        if (string.IsNullOrWhiteSpace(v)) return false;
+        v = v.Trim();
+        return string.Equals(v, "1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(v, "true", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(v, "yes", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsWorkItemsDiagnosticsEnabled()
+    {
+        var v = Environment.GetEnvironmentVariable(ShowWorkItemsDiagnosticsEnvVarName);
+        if (string.IsNullOrWhiteSpace(v)) return false;
+        v = v.Trim();
+        return string.Equals(v, "1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(v, "true", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(v, "yes", StringComparison.OrdinalIgnoreCase);
+    }
 
     private readonly WorkItemStateStore workItemStore;
     private WorkItemState workItemState;
@@ -139,8 +174,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             });
 
             var results = await AppCore.FetchAllAsync(apps, env, MaxConcurrency, progress, fetchCts.Token);
-            await RefreshWorkItemsByCategoryAsync(apps, env, results, category, fetchCts.Token);
 
+            // Populate Deployed Versions immediately after the HTTP fetch completes.
             Dispatcher.UIThread.Post(() =>
             {
                 if (string.Equals(category, "AIA", StringComparison.OrdinalIgnoreCase))
@@ -158,8 +193,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 }
 
                 ProgressValue = 100;
-                StatusText = fetchCts.IsCancellationRequested ? $"Cancelled ({env})" : $"Completed ({env}) ({category})";
+                StatusText = fetchCts.IsCancellationRequested
+                    ? $"Cancelled ({env})"
+                    : $"Deployed versions loaded ({env}) ({category}). Fetching work items…";
             });
+
+            // Run Work Items refresh asynchronously (it can be slower due to GitHub PR lookups).
+            _ = RefreshWorkItemsByCategorySafeAsync(apps, env, results, category, fetchCts.Token);
         }
         catch (Exception ex)
         {
@@ -171,6 +211,45 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             FetchAitCommand.NotifyCanExecuteChanged();
             FetchAiaCommand.NotifyCanExecuteChanged();
         }
+    }
+
+    private async Task RefreshWorkItemsByCategorySafeAsync(List<AppInfo> apps, string env, VersionResult[] versionResults, string category, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await RefreshWorkItemsByCategoryAsync(apps, env, versionResults, category, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            SetWorkItemsBusy(category, false);
+        }
+        catch (Exception ex)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                SetWorkItemsBusy(category, false);
+                if (string.Equals(category, "AIA", StringComparison.OrdinalIgnoreCase))
+                    WorkItemsStatusTextAia = $"AIA work items error: {ex.Message}";
+                else
+                    WorkItemsStatusTextAit = $"AIT work items error: {ex.Message}";
+            });
+        }
+    }
+
+    private void SetWorkItemsBusy(string category, bool isBusy)
+    {
+        if (string.Equals(category, "AIA", StringComparison.OrdinalIgnoreCase))
+            WorkItemsIsBusyAia = isBusy;
+        else
+            WorkItemsIsBusyAit = isBusy;
+    }
+
+    private void SetWorkItemsProgress(string category, double value)
+    {
+        if (string.Equals(category, "AIA", StringComparison.OrdinalIgnoreCase))
+            WorkItemsProgressAia = value;
+        else
+            WorkItemsProgressAit = value;
     }
 
     private bool CanFetch() => IsNotBusy;
@@ -278,6 +357,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     private async Task RefreshWorkItemsByCategoryAsync(List<AppInfo> apps, string env, VersionResult[] versionResults, string category, CancellationToken cancellationToken)
     {
+        Dispatcher.UIThread.Post(() =>
+        {
+            SetWorkItemsBusy(category, true);
+            SetWorkItemsProgress(category, 0);
+            if (string.Equals(category, "AIA", StringComparison.OrdinalIgnoreCase))
+                WorkItemsStatusTextAia = "AIA work items: fetching…";
+            else
+                WorkItemsStatusTextAit = "AIT work items: fetching…";
+        });
+
         if (!IsWorkItemsEnv(env))
         {
             Dispatcher.UIThread.Post(() =>
@@ -294,6 +383,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                     UnlinkedPullRequestsAit.Clear();
                     WorkItemsStatusTextAit = "Work items and PRs are only retrieved for higher environments (QED/SBX/PROD and UK variants), not for CI or DEMO.";
                 }
+
+                SetWorkItemsBusy(category, false);
+                SetWorkItemsProgress(category, 0);
             });
             return;
         }
@@ -315,6 +407,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                     UnlinkedPullRequestsAit.Clear();
                     WorkItemsStatusTextAit = $"Work items skipped: GitHub token not configured (CredMan '{GitHubCredentialTargetName}' or env var '{GitHubTokenEnvVarName}').";
                 }
+
+                SetWorkItemsBusy(category, false);
+                SetWorkItemsProgress(category, 0);
             });
             return;
         }
@@ -323,19 +418,26 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
         var byAppName = versionResults.ToDictionary(v => v.AppName, StringComparer.OrdinalIgnoreCase);
 
+        var totalEligibleServices = apps.Count(a =>
+            !string.IsNullOrWhiteSpace(a.GitHubRepo)
+            && byAppName.TryGetValue(a.Name, out var vv)
+            && !string.IsNullOrWhiteSpace(vv.FullCommitSha));
+
         var didReset = EnsureServiceSetSignatureAndResetIfChanged(apps, env, category);
 
         var linkedRows = new List<LinkedWorkItemRow>();
         var unlinkedRows = new List<UnlinkedPullRequestRow>();
         var notes = new List<string>();
+        var diagnosticNotes = new List<string>();
+        var includeDiagnostics = IsWorkItemsDiagnosticsEnabled();
 
         var anyStateChanged = didReset;
         var baselinesInitialized = 0;
         var servicesFetched = 0;
         var eligibleServices = 0;
 
-        if (didReset)
-            notes.Add($"{category} cache reset (service list changed)");
+        if (didReset && includeDiagnostics)
+            diagnosticNotes.Add($"{category} cache reset (service list changed)");
 
         // Group-level invalidation: if any service in this category changed SHA, we don't show cached results.
         var anyServiceChangedSha = false;
@@ -369,6 +471,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             }
         }
 
+        var processed = 0;
+
         foreach (var app in apps)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -385,6 +489,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 notes.Add($"{app.Name}: no commit SHA found in version");
                 continue;
             }
+
+            processed++;
+            var pct = totalEligibleServices > 0 ? (double)processed / totalEligibleServices * 100d : 0;
+            var currentApp = app.Name;
+            Dispatcher.UIThread.Post(() =>
+            {
+                SetWorkItemsProgress(category, Math.Clamp(pct, 0, 100));
+                if (string.Equals(category, "AIA", StringComparison.OrdinalIgnoreCase))
+                    WorkItemsStatusTextAia = $"AIA work items: fetching {processed}/{totalEligibleServices}: {currentApp}";
+                else
+                    WorkItemsStatusTextAit = $"AIT work items: fetching {processed}/{totalEligibleServices}: {currentApp}";
+            });
 
             eligibleServices++;
 
@@ -425,6 +541,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 continue;
             }
 
+            if (IsWorkItemsShaOverrideEnabled()
+                && app.CurrentCommitOverrideByEnv is not null
+                && app.CurrentCommitOverrideByEnv.TryGetValue(env, out var overriddenCurrent)
+                && !string.IsNullOrWhiteSpace(overriddenCurrent))
+            {
+                currentSha = overriddenCurrent;
+                if (includeDiagnostics)
+                    diagnosticNotes.Add($"{app.Name}: current SHA overridden via {EnableWorkItemsShaOverrideEnvVarName}");
+            }
+
             var hasChanged = latestSnapshot is null || !string.Equals(latestSnapshot.CurrentSha, currentSha, StringComparison.OrdinalIgnoreCase);
 
             // If nothing changed across the group, show cached rows.
@@ -451,8 +577,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 continue;
             }
 
-            if (!string.IsNullOrWhiteSpace(fetched.Warning))
-                notes.Add($"{app.Name}: {fetched.Warning}");
+            if (includeDiagnostics && !string.IsNullOrWhiteSpace(fetched.Warning))
+                diagnosticNotes.Add($"{app.Name}: {fetched.Warning}");
 
             servicesFetched++;
 
@@ -498,7 +624,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
         var linkedCount = linkedRows.Count;
         var unlinkedCount = unlinkedRows.Count;
-        var noteText = notes.Count == 0 ? "" : $" Notes: {string.Join(" | ", notes)}";
+        var userNoteText = notes.Count == 0 ? "" : $" Notes: {string.Join(" | ", notes)}";
+        var diagNoteText = (!includeDiagnostics || diagnosticNotes.Count == 0) ? "" : $" Diagnostics: {string.Join(" | ", diagnosticNotes)}";
+        var noteText = userNoteText + diagNoteText;
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -548,6 +676,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                         : $"AIT work items (cached): {linkedCount} linked; {unlinkedCount} unlinked PR(s).{noteText}";
                 }
             }
+
+            SetWorkItemsBusy(category, false);
+            SetWorkItemsProgress(category, 100);
         });
     }
 

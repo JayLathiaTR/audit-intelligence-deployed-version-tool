@@ -129,6 +129,12 @@
                         <TabItem Header="AIT (Test)">
                             <Grid RowDefinitions="Auto,*,*" RowSpacing="14">
                                 <TextBlock Text="{Binding WorkItemsStatusTextAit}" Opacity="0.85" TextWrapping="Wrap" />
+                                <ProgressBar Grid.Row="0"
+                                             Margin="0,28,0,0"
+                                             Minimum="0" Maximum="100"
+                                             Height="6"
+                                             Value="{Binding WorkItemsProgressAit}"
+                                             IsVisible="{Binding WorkItemsIsBusyAit}" />
                                 <Border
                                     Grid.Row="1"
                                     Padding="10"
@@ -194,6 +200,12 @@
                         <TabItem Header="AIA (Analyze)">
                             <Grid RowDefinitions="Auto,*,*" RowSpacing="14">
                                 <TextBlock Text="{Binding WorkItemsStatusTextAia}" Opacity="0.85" TextWrapping="Wrap" />
+                                <ProgressBar Grid.Row="0"
+                                             Margin="0,28,0,0"
+                                             Minimum="0" Maximum="100"
+                                             Height="6"
+                                             Value="{Binding WorkItemsProgressAia}"
+                                             IsVisible="{Binding WorkItemsIsBusyAia}" />
                                 <Border
                                     Grid.Row="1"
                                     Padding="10"

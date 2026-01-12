@@ -14,6 +14,10 @@ public class AppInfo
     public string? GitHubRepo { get; set; }
 
     public Dictionary<string, string>? BaselineCommitByEnv { get; set; }
+
+    // Optional: force the commit used for Work Items compare for a given env.
+    // This is intended for ad-hoc validation (e.g., release-branch comparisons) and should be gated in UI logic.
+    public Dictionary<string, string>? CurrentCommitOverrideByEnv { get; set; }
 }
 
 
