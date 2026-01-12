@@ -68,6 +68,18 @@ cmdkey /generic:AuditIntelligenceDeployedVersion-GitHubToken /user:token /pass:<
 setx AITVERS_GITHUB_TOKEN "<YOUR_GITHUB_PAT>"
 ```
 
+### Diagnostics (optional)
+
+By default, the app hides “noisy” Work Items diagnostics (e.g., GitHub compare `diverged/behind` warnings) because they can be expected with a GitOps/release-branch strategy.
+
+To show these diagnostics in the Work Items status text (useful for debugging), set:
+
+```powershell
+setx AITVERS_SHOW_WORKITEMS_DIAGNOSTICS "1"
+```
+
+Restart the app (or your IDE) after setting it.
+
 ## Build / Run (dev) (manual)
 
 In Visual Studio, set `AitApplicationDeployedVersions.Avalonia` as the Startup Project and run.
