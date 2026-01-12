@@ -1,8 +1,10 @@
 ﻿using AitApplicationDeployedVersions.Core;
 using AitApplicationDeployedVersions.Models;
+using Avalonia.Input.Platform;
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,6 +18,11 @@ namespace AitApplicationDeployedVersions.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel : ViewModelBase
 {
     private const int MaxConcurrency = 6;
+
+    private readonly IClipboard? clipboard;
+
+    private string? lastFetchedAitEnv;
+    private string? lastFetchedAiaEnv;
 
     [ObservableProperty]
     private string aitHeaderText = "AIT (Test)";
@@ -44,8 +51,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     private CancellationTokenSource? fetchCts;
 
-    public MainWindowViewModel()
+    public MainWindowViewModel(IClipboard? clipboard = null)
     {
+        this.clipboard = clipboard;
         SelectedEnvironment = Environments.FirstOrDefault();
     }
 
@@ -59,6 +67,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand(CanExecute = nameof(CanFetch))]
     private Task FetchAiaAsync() => FetchByCategoryAsync(category: "AIA");
+
+    [RelayCommand]
+    private Task CopyAitMarkdownAsync() => CopyMarkdownAsync(label: "AIT", ResultsAit, lastFetchedAitEnv);
+
+    [RelayCommand]
+    private Task CopyAiaMarkdownAsync() => CopyMarkdownAsync(label: "AIA", ResultsAia, lastFetchedAiaEnv);
+
+    [RelayCommand]
+    private Task CopyBothMarkdownAsync() => CopyBothMarkdownAsyncCore();
 
     private async Task FetchByCategoryAsync(string category)
     {
@@ -123,9 +140,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 }
 
                 if (string.Equals(category, "AIA", StringComparison.OrdinalIgnoreCase))
+                {
                     AiaHeaderText = $"AIA (Analyze) - {env}";
+                    lastFetchedAiaEnv = env;
+                }
                 else
+                {
                     AitHeaderText = $"AIT (Test) - {env}";
+                    lastFetchedAitEnv = env;
+                }
 
                 StatusText = $"Fetched {category} ({env}).";
             });
@@ -143,6 +166,116 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     }
 
     private bool CanFetch() => IsNotBusy;
+
+    private async Task CopyMarkdownAsync(string label, IReadOnlyCollection<ResultRow> rows, string? env)
+    {
+        if (string.IsNullOrWhiteSpace(env))
+        {
+            StatusText = $"Please fetch {label} first.";
+            return;
+        }
+
+        if (rows.Count == 0)
+        {
+            StatusText = $"Nothing to copy for {label}.";
+            return;
+        }
+
+        var md = FormatMarkdownSingle(label, env, rows);
+        await CopyToClipboardAsync(md, $"Copied {label} ({rows.Count} rows) for {env}.");
+    }
+
+    private async Task CopyBothMarkdownAsyncCore()
+    {
+        if (ResultsAit.Count == 0 && ResultsAia.Count == 0)
+        {
+            StatusText = "Nothing to copy.";
+            return;
+        }
+
+        var aitEnv = ResultsAit.Count > 0 ? lastFetchedAitEnv : null;
+        var aiaEnv = ResultsAia.Count > 0 ? lastFetchedAiaEnv : null;
+
+        if (ResultsAit.Count > 0 && string.IsNullOrWhiteSpace(aitEnv))
+        {
+            StatusText = "Please fetch AIT first.";
+            return;
+        }
+
+        if (ResultsAia.Count > 0 && string.IsNullOrWhiteSpace(aiaEnv))
+        {
+            StatusText = "Please fetch AIA first.";
+            return;
+        }
+
+        var md = FormatMarkdownBoth(ResultsAit, aitEnv, ResultsAia, aiaEnv);
+        var totalRows = ResultsAit.Count + ResultsAia.Count;
+        await CopyToClipboardAsync(md, $"Copied both tables ({totalRows} rows).");
+    }
+
+    private static string FormatMarkdownSingle(string category, string env, IEnumerable<ResultRow> rows)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"### {EscapeMarkdownInline(category)} ({EscapeMarkdownInline(env)})");
+        sb.AppendLine();
+        sb.AppendLine("| Environment | App | Deployed Version |");
+        sb.AppendLine("|---|---|---|");
+        foreach (var row in rows)
+            sb.AppendLine($"| {EscapeMarkdownCell(env)} | {EscapeMarkdownCell(row.App)} | {EscapeMarkdownCell(row.DeployedVersion)} |");
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string FormatMarkdownBoth(
+        IEnumerable<ResultRow> aitRows,
+        string? aitEnv,
+        IEnumerable<ResultRow> aiaRows,
+        string? aiaEnv)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("| Category | Environment | App | Deployed Version |");
+        sb.AppendLine("|---|---|---|---|");
+
+        foreach (var row in aitRows)
+            sb.AppendLine($"| AIT | {EscapeMarkdownCell(aitEnv)} | {EscapeMarkdownCell(row.App)} | {EscapeMarkdownCell(row.DeployedVersion)} |");
+
+        foreach (var row in aiaRows)
+            sb.AppendLine($"| AIA | {EscapeMarkdownCell(aiaEnv)} | {EscapeMarkdownCell(row.App)} | {EscapeMarkdownCell(row.DeployedVersion)} |");
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string EscapeMarkdownInline(string? value)
+    {
+        // Basic escaping for headings/inline contexts.
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        return value.Replace("\r", " ", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
+    }
+
+    private static string EscapeMarkdownCell(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+
+        // Keep it readable in table cells: remove newlines, escape pipe and backslash.
+        return value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("|", "\\|", StringComparison.Ordinal)
+            .Replace("\r", " ", StringComparison.Ordinal)
+            .Replace("\n", " ", StringComparison.Ordinal)
+            .Trim();
+    }
+
+    private async Task CopyToClipboardAsync(string text, string successStatus)
+    {
+        if (clipboard is null)
+        {
+            StatusText = "Clipboard is not available.";
+            return;
+        }
+
+        await clipboard.SetTextAsync(text);
+
+        StatusText = successStatus;
+    }
 
     public void CancelFetch()
     {
