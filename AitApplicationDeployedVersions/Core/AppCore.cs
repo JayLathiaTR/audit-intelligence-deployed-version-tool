@@ -142,11 +142,15 @@ public static class AppCore
             var root = doc.RootElement;
 
             var version = TryGetJsonPathString(root, app.VersionJsonPath);
-            return version is null ? "Version not found" : ExtractCommitSha(version);
+            if (version is null)
+                return "Version not found";
+
+            return ExtractCommitSha(version);
         }
         catch (OperationCanceledException)
         {
-            return cancellationToken.IsCancellationRequested ? "Error: Cancelled" : "Error: Timeout";
+            var msg = cancellationToken.IsCancellationRequested ? "Error: Cancelled" : "Error: Timeout";
+            return msg;
         }
         catch (JsonException)
         {
@@ -193,12 +197,33 @@ public static class AppCore
     {
         if (string.IsNullOrWhiteSpace(version)) return "Invalid";
 
-        var parts = version.Split('+');
-        if (parts.Length > 1 && parts[1].Length >= 7)
-        {
-            return parts[1][..7];
-        }
+        var full = TryExtractCommitShaFromVersion(version);
+        if (!string.IsNullOrWhiteSpace(full) && full.Length >= 7)
+            return full[..7];
 
         return "Invalid SHA";
+    }
+
+    private static string? TryExtractCommitShaFromVersion(string? version)
+    {
+        if (string.IsNullOrWhiteSpace(version)) return null;
+
+        var plusIndex = version.IndexOf('+');
+        if (plusIndex < 0 || plusIndex >= version.Length - 1) return null;
+
+        var sha = version[(plusIndex + 1)..].Trim();
+
+        // Git SHA is typically 40 hex chars.
+        if (sha.Length < 7) return null;
+
+        // Only accept hex-like strings (allow short/long).
+        for (var i = 0; i < sha.Length; i++)
+        {
+            var c = sha[i];
+            var isHex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+            if (!isHex) return null;
+        }
+
+        return sha;
     }
 }
