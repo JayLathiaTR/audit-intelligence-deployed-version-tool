@@ -7,7 +7,6 @@ Windows desktop app that fetches and displays deployed versions (commit SHAs) fo
 - Pick an environment (CI/DEMO/QED/SBX/PROD + UK variants)
 - Click **Fetch**
 - The app calls each configured endpoint and shows the deployed version/short SHA in a table
-- For QED/SBX/PROD (+ UK variants), the **Work Items** tab can also list `AB#123456` work item references found in GitHub PR descriptions for the deployment delta
 
 ## Where to change things
 
@@ -47,38 +46,6 @@ This repo uses GitHub Actions to build on PRs and `master`, and to publish the s
 - It publishes the `win-x64` single-file EXE and attaches it to a GitHub Release.
 - You can download it from **GitHub → Releases → (your tag) → Assets**.
   <img width="818" height="557" alt="image" src="https://github.com/user-attachments/assets/2a42b2f0-9260-4a7e-8a2a-f85c1b9972f1" />
-
-## Work Items (optional)
-
-For services that have `gitHubRepo` configured in `apps.json`, the app can query GitHub to find PRs between the last baseline and the currently deployed commit, then extract work items from PR descriptions using a regex like `AB#4058190`.
-
-To access private GitHub repos, configure a read-only GitHub token on the machine running the tool.
-
-- Preferred: Windows Credential Manager
-  - Credential name: `AuditIntelligenceDeployedVersion-GitHubToken`
-  - Create/update it via PowerShell:
-
-```powershell
-cmdkey /generic:AuditIntelligenceDeployedVersion-GitHubToken /user:token /pass:<YOUR_GITHUB_PAT>
-```
-
-- Fallback: environment variable
-
-```powershell
-setx AITVERS_GITHUB_TOKEN "<YOUR_GITHUB_PAT>"
-```
-
-### Diagnostics (optional)
-
-By default, the app hides “noisy” Work Items diagnostics (e.g., GitHub compare `diverged/behind` warnings) because they can be expected with a GitOps/release-branch strategy.
-
-To show these diagnostics in the Work Items status text (useful for debugging), set:
-
-```powershell
-setx AITVERS_SHOW_WORKITEMS_DIAGNOSTICS "1"
-```
-
-Restart the app (or your IDE) after setting it.
 
 ## Build / Run (dev) (manual)
 

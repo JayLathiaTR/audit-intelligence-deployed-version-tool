@@ -4,7 +4,6 @@
     "category": "AIT",
     "type": "Microservice",
     "versionJsonPath": "info.version",
-    "gitHubRepo": "tr/aafm-audit-cs-gateway-be",
     "envUrls": {
       "CI": "https://ci.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",
       "DEMO": "https://demo.api.auditintelligence.thomsonreuters.com/csgateway/swagger/v3/swagger.json",
@@ -21,7 +20,6 @@
     "category": "AIT",
     "type": "Microservice",
     "versionJsonPath": "info.version",
-    "gitHubRepo": "tr/aafm-audit-ait-core-be",
     "envUrls": {
       "CI": "https://ci.api.aitest.fd.thomsonreuters.com/ait/core/swagger/v3/swagger.json",
       "DEMO": "https://demo.api.aitest.fd.thomsonreuters.com/ait/core/swagger/v3/swagger.json",
@@ -38,7 +36,6 @@
     "category": "AIT",
     "type": "Microservice",
     "versionJsonPath": "info.version",
-    "gitHubRepo": "tr/aafm-audit-ait-pricing-be",
     "envUrls": {
       "CI": "https://ci.api.aitest.fd.thomsonreuters.com/ait/pricing/swagger/v3/swagger.json",
       "DEMO": "https://demo.api.aitest.fd.thomsonreuters.com/ait/pricing/swagger/v3/swagger.json",
@@ -55,7 +52,6 @@
     "category": "AIT",
     "type": "OfficeAddin",
     "versionJsonPath": "version",
-    "gitHubRepo": "tr/aafm-audit-ait-office-addin",
     "envUrls": {
       "CI": "https://ci.officeaddin.aitest.thomsonreuters.com/version.json",
       "DEMO": "https://demo.officeaddin.aitest.thomsonreuters.com/version.json",
@@ -72,7 +68,6 @@
     "category": "AIT",
     "type": "BlazorWasm",
     "versionJsonPath": "version",
-    "gitHubRepo": "tr/aafm-audit-em-web-components-fe",
     "envUrls": {
       "CI": "https://ci.webcomponents.aitest.thomsonreuters.com/version.json",
       "DEMO": "https://demo.webcomponents.aitest.thomsonreuters.com/version.json",
@@ -89,7 +84,6 @@
     "category": "AIA",
     "type": "Microservice",
     "versionJsonPath": "info.version",
-    "gitHubRepo": "tr/TaxProf_aafm-audit-af-smart-analysis",
     "envUrls": {
       "CI": "https://ci.api.analyze.auditintelligence.thomsonreuters.com/em/smartanalysis/swagger/v3/swagger.json",
       "DEMO": "https://demo.api.analyze.auditintelligence.thomsonreuters.com/em/smartanalysis/swagger/v3/swagger.json",
@@ -106,7 +100,6 @@
     "category": "AIA",
     "type": "Microservice",
     "versionJsonPath": "info.version",
-    "gitHubRepo": "tr/TaxProf_aafm-audit-af-emails-v2-service",
     "envUrls": {
       "CI": "https://ci.api.email.auditintelligence.thomsonreuters.com/em/email/swagger/v3/swagger.json",
       "DEMO": "https://demo.api.email.auditintelligence.thomsonreuters.com/em/email/swagger/v3/swagger.json",

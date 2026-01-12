@@ -68,8 +68,7 @@ public static class AppCore
                 AppName = a.Name,
                 Environment = env,
                 Category = NormalizeCategory(a.Category),
-                Version = "Pending",
-                FullCommitSha = null
+                Version = "Pending"
             })
             .ToArray();
 
@@ -91,9 +90,7 @@ public static class AppCore
                     string version;
                     if (app.EnvUrls.TryGetValue(env, out _))
                     {
-                        var fetched = await FetchVersionAsync(app, env, token);
-                        version = fetched.DisplayVersion;
-                        results[index].FullCommitSha = fetched.FullCommitSha;
+                        version = await FetchVersionAsync(app, env, token);
                     }
                     else
                     {
@@ -123,12 +120,12 @@ public static class AppCore
         return results;
     }
 
-    private static async Task<VersionFetchResult> FetchVersionAsync(AppInfo app, string env, CancellationToken cancellationToken)
+    private static async Task<string> FetchVersionAsync(AppInfo app, string env, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(app);
 
         if (!app.EnvUrls.TryGetValue(env, out var url))
-            return new VersionFetchResult("URL not configured", null);
+            return "URL not configured";
 
         try
         {
@@ -136,7 +133,7 @@ public static class AppCore
             if (!response.IsSuccessStatusCode)
             {
                 var reason = string.IsNullOrWhiteSpace(response.ReasonPhrase) ? "" : $" {response.ReasonPhrase}";
-                return new VersionFetchResult($"Error: {(int)response.StatusCode}{reason}", null);
+                return $"Error: {(int)response.StatusCode}{reason}";
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -146,28 +143,26 @@ public static class AppCore
 
             var version = TryGetJsonPathString(root, app.VersionJsonPath);
             if (version is null)
-                return new VersionFetchResult("Version not found", null);
+                return "Version not found";
 
-            var full = TryExtractFullCommitSha(version);
-            var display = ExtractCommitSha(version);
-            return new VersionFetchResult(display, full);
+            return ExtractCommitSha(version);
         }
         catch (OperationCanceledException)
         {
             var msg = cancellationToken.IsCancellationRequested ? "Error: Cancelled" : "Error: Timeout";
-            return new VersionFetchResult(msg, null);
+            return msg;
         }
         catch (JsonException)
         {
-            return new VersionFetchResult("Error: Invalid JSON", null);
+            return "Error: Invalid JSON";
         }
         catch (HttpRequestException ex)
         {
-            return new VersionFetchResult($"Error: {ex.Message}", null);
+            return $"Error: {ex.Message}";
         }
         catch (Exception ex)
         {
-            return new VersionFetchResult($"Error: {ex.Message}", null);
+            return $"Error: {ex.Message}";
         }
     }
 
@@ -202,14 +197,14 @@ public static class AppCore
     {
         if (string.IsNullOrWhiteSpace(version)) return "Invalid";
 
-        var full = TryExtractFullCommitSha(version);
+        var full = TryExtractCommitShaFromVersion(version);
         if (!string.IsNullOrWhiteSpace(full) && full.Length >= 7)
             return full[..7];
 
         return "Invalid SHA";
     }
 
-    private static string? TryExtractFullCommitSha(string? version)
+    private static string? TryExtractCommitShaFromVersion(string? version)
     {
         if (string.IsNullOrWhiteSpace(version)) return null;
 
@@ -231,6 +226,4 @@ public static class AppCore
 
         return sha;
     }
-
-    private readonly record struct VersionFetchResult(string DisplayVersion, string? FullCommitSha);
 }
